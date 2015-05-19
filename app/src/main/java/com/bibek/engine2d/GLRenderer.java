@@ -61,6 +61,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 
+        // Enable scissoring
+        GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+
         // Set the background frame color
         GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
@@ -115,12 +118,34 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         testSprite.draw();
     }
 
-    @Override
-    public void onSurfaceChanged(GL10 unused, int width, int height) {
-        GLES20.glViewport(0, 0, width, height);
+    private final int width = 480, height = 320;
 
-        // Projection is orthographic
+    @Override
+    public void onSurfaceChanged(GL10 unused, int dev_width, int dev_height) {
+        float ar = (float)dev_width/(float)dev_height;
+        float cx = 0, cy = 0, scale;
+
+        // Fit one dimension and maintain the ratio with other dimension
+        float aspect_ratio = (float) width / (float) height;
+        // if aspect-ratio of device is greater than what is desired, fit the height
+        if (ar > aspect_ratio) {
+            scale = (float)dev_height/(float)height;
+            cx = (dev_width - width*scale)/2.0f;
+        }
+        // otherwise fit the width
+        else {
+            scale = (float)dev_width/(float)width;
+            cy = (dev_height - height*scale)/2.0f;
+        }
+
+        // Set the viewport
+        GLES20.glViewport((int) cx, (int) cy, (int) (width * scale), (int) (height * scale));
+
+        // Set the orthographic projection matrix.
         Matrix.orthoM(mProjectionMatrix, 0, 0, width, height, 0, -100, 100);
+
+        // Scissor the viewport
+        GLES20.glScissor((int)cx, (int)cy, (int)(width*scale), (int)(height*scale));
     }
 
     // Set transform for drawing the rectangle.
