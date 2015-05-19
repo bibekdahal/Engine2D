@@ -1,0 +1,6 @@
+precision mediump float;
+
+uniform vec4 uColor;        // sprite color
+void main() {
+    gl_FragColor = uColor;
+}
