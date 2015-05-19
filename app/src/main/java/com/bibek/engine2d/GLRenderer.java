@@ -1,8 +1,11 @@
 package com.bibek.engine2d;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
 
@@ -53,6 +56,11 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
+
+        // Enable blending for transparency
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
         // Set the background frame color
         GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
@@ -90,9 +98,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         // point the vertex-position attribute to the vertex buffer data
         GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 2*4, vertexBuffer);
 
-        // Initialize the test sprite at position (50, 50) with size(200, 200)
-        testSprite.init(50, 50, 200, 200);
+        // get the texture uniform handle and set it to use the sample-0
+        int texHandle = GLES20.glGetUniformLocation(mProgram, "uTexture");
+        GLES20.glUniform1i(texHandle, 0);
 
+        // Initialize the test sprite with android launcher icon as texture at position (50, 50) with size(200, 200)
+        testSprite.init(R.mipmap.ic_launcher, 50, 50, 200, 200);
     }
 
     @Override
@@ -149,4 +160,28 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
+    // load texture from a resource file
+    public int loadTexture(int resourceId)
+    {
+        int[] textureHandle = new int[1];
+        GLES20.glGenTextures(1, textureHandle, 0);
+        if (textureHandle[0] != 0) {
+            Bitmap bitmap = BitmapFactory.decodeResource(mContext.getResources(), resourceId);
+            if (bitmap == null) {
+                throw new RuntimeException("Error decoding bitmap");
+            }
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+            bitmap.recycle();
+        }
+        else {
+            throw new RuntimeException("Error loading texture.");
+        }
+
+        return textureHandle[0];
+    }
 }
