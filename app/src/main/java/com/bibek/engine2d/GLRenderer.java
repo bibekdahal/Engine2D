@@ -114,7 +114,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         mEngine.newFrame();
     }
 
-    private final int width = 480, height = 320;
+    public final int width = 480, height = 320;
 
     @Override
     public void onSurfaceChanged(GL10 unused, int dev_width, int dev_height) {
