@@ -51,8 +51,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public final float[] mProjectionMatrix = new float[16];
     public final float[] mModelMatrix = new float[16];
 
-    // Test sprite
-    Sprite testSprite = new Sprite(this);
+    // The main engine
+    private Engine mEngine = new Engine(this);
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
@@ -105,17 +105,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         int texHandle = GLES20.glGetUniformLocation(mProgram, "uTexture");
         GLES20.glUniform1i(texHandle, 0);
 
-        // Initialize the test sprite with android launcher icon as texture at position (50, 50) with size(200, 200)
-        testSprite.init(R.mipmap.ic_launcher, 50, 50, 200, 200);
+        // Initialize the Engine
+        mEngine.init();
     }
 
     @Override
     public void onDrawFrame(GL10 unused) {
-        // Redraw background color
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
-        // Draw the test sprite
-        testSprite.draw();
+        mEngine.newFrame();
     }
 
     private final int width = 480, height = 320;
