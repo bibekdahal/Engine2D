@@ -1,31 +1,50 @@
 package com.bibek.engine2d;
 
 import android.opengl.GLES20;
+import android.util.Log;
 
 public class Sprite {
     // A reference to the renderer
-    private final GLRenderer mRenderer;
+    public final GLRenderer mRenderer;
 
     // The texture to draw this sprite
-    private int mTexture;
+    public Texture mTexture;
 
-    // position and size of the sprite
-    public float mX, mY, mW, mH;
+    // The color to blend with the texture
+    public float[] mColor = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 
-    Sprite(GLRenderer renderer) { mRenderer = renderer; }
+    // size and origin of the sprite
+    public float width, height, originX = 0, originY = 0;
 
-    // initialization code
-    public void init(int textureResourceId, float x, float y, float w, float h) {
-        mX = x; mY = y;
-        mW = w; mH = h;
-        mTexture = mRenderer.loadTexture(textureResourceId);
+    // Create sprite with a texture; set textureId = null for white texture
+    public Sprite(GLRenderer renderer, Texture texture, float width, float height) {
+        mRenderer = renderer;
+        this.width = width;
+        this.height = height;
+        if (texture == null)
+            mTexture = mRenderer.mWhiteTexture;
+        else
+            mTexture = texture;
+    }
+
+    // Create sprite with a texture and a color; set textureId = null for using color only
+    public Sprite(GLRenderer renderer, Texture texture, float[] color, float width, float height) {
+        this(renderer, texture, width, height);
+        mColor = color;
     }
 
     // draw the sprite
-    public void draw() {
-        mRenderer.setSpriteTransform(mX, mY, mW, mH);
+    public void draw(float x, float y, float angle) {
+        draw(x, y, angle, 0, 0, 1, 1);
+    }
+
+    // draw clipped sprite: all parameters are to be in texture-space i.e. in the range of [0, 1]
+    public void draw(float x, float y, float angle, float clipX, float clipY, float clipW, float clipH) {
+        GLES20.glUniform4f(mRenderer.mClipHandle, clipX, clipY, clipW, clipH);
+        mRenderer.setSpriteTransform(x, y, width, height, angle, originX, originY);
+        GLES20.glUniform4fv(mRenderer.mColorHandle, 1, mColor, 0);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);  // sample-0
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture.textureId);
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, 6, GLES20.GL_UNSIGNED_SHORT, mRenderer.indexBuffer);
     }
 }

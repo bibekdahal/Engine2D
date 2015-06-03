@@ -32,6 +32,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     // Uniform handles
     public int mColorHandle;
     public int mMVPMatrixHandle;
+    public int mClipHandle;
 
     // vertex buffer data
     private static float squareCoords[] = {
@@ -54,6 +55,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     // The main engine
     private Engine mEngine = new Engine(this);
 
+    public Texture mWhiteTexture;
+
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
 
@@ -65,7 +68,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
 
         // Set the background frame color
-        GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+        GLES20.glClearColor(100.0f/255, 149.0f/255, 237.0f/255, 1.0f);
 
         // Compile the sprite shaders
         int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, getRawFileText(R.raw.vs_sprite));
@@ -83,6 +86,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnableVertexAttribArray(positionHandle);
         mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+        mClipHandle = GLES20.glGetUniformLocation(mProgram, "uClip");
 
         // Create the vertex buffer
         ByteBuffer bb = ByteBuffer.allocateDirect(squareCoords.length*4);
@@ -104,6 +108,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         // get the texture uniform handle and set it to use the sample-0
         int texHandle = GLES20.glGetUniformLocation(mProgram, "uTexture");
         GLES20.glUniform1i(texHandle, 0);
+
+        mWhiteTexture = loadTexture(R.drawable.white);
 
         // Initialize the Engine
         mEngine.init();
@@ -145,12 +151,14 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     // Set transform for drawing the rectangle.
-    public void setSpriteTransform(float posX, float posY, float scaleX, float scaleY) {
+    public void setSpriteTransform(float posX, float posY, float scaleX, float scaleY, float angle, float originX, float originY) {
         // calculate transformation matrix mMVPMatrix that will transform the vertices of the square
 
-        // mModelMatrix = Translate(posX, posY) * Scale(scaleX, scaleY)
+        // mModelMatrix = Translate(posX, posY) * Rotate(angle) * Translate(-originX, -originY) * Scale(scaleX, scaleY)
         Matrix.setIdentityM(mModelMatrix, 0);
         Matrix.translateM(mModelMatrix, 0, posX, posY, 0);
+        Matrix.rotateM(mModelMatrix, 0, angle, 0, 0, 1);
+        Matrix.translateM(mModelMatrix, 0, -originX, -originY, 0);
         Matrix.scaleM(mModelMatrix, 0, scaleX, scaleY, 1);
 
         // mMVPMatrix = mProjectionMatrix * mModelMatrix
@@ -182,9 +190,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     // load texture from a resource file
-    public int loadTexture(int resourceId)
+    public Texture loadTexture(int resourceId)
     {
         int[] textureHandle = new int[1];
+        int width, height;
         GLES20.glGenTextures(1, textureHandle, 0);
         if (textureHandle[0] != 0) {
             Bitmap bitmap = BitmapFactory.decodeResource(mContext.getResources(), resourceId);
@@ -197,12 +206,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
             GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+
+            width = bitmap.getWidth();
+            height = bitmap.getHeight();
             bitmap.recycle();
         }
         else {
             throw new RuntimeException("Error loading texture.");
         }
 
-        return textureHandle[0];
+        return new Texture(textureHandle[0], width, height);
     }
 }
